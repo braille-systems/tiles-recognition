@@ -1,5 +1,11 @@
 # Braille Tiles Recognition
-Automatic recognition of education Braille Tiles with computer vision
+This repository is about automatic recognition of educational Braille Tiles with computer vision.
+
+The primary goal is to develop a program for self-education of visually impaired (for studying Louis Braille's symbols system). The program will issue tasks - to assemble a word from tiles, and the trainee should compose this word and demonstrate it in front of camera. The program will tell whether the answer is correct.
+
+We plan to make this program a part of educational Android app [Learn Braille](https://github.com/braille-systems/learn-braille)
+
+You may find additional information about Braille Tiles in the [article](https://github.com/braille-systems/braille-trainer/wiki/tiles) (Russian)
 
 # Распознавание плиток Брайля
 В этом репозитории - автоматическое распознавание обучающих плиток с символами Брайля по фотографии.
