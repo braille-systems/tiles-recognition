@@ -5,9 +5,11 @@ Download set of images, use them as background for tiles to train object detecti
 
 import itertools
 import os
+import zipfile
 from dataclasses import dataclass
 from typing import List, Generator, Iterable
 
+import wget
 from PIL import Image
 
 BACKGROUND_LINK = 'http://images.cocodataset.org/zips/val2017.zip'
@@ -53,7 +55,8 @@ def apply_perspective(tiles: Iterable[Tile]) -> GenTiles:
 def apply_rotations_helper(tile: Tile, angle: int) -> GenTiles:
     yield Tile(tile.img.rotate(angle), tile.label)
     yield Tile(tile.img.rotate(-angle), tile.label)
-    # TODO
+    # TODO edit labels
+    # TODO padding
 
 
 def apply_rotations(tiles: Iterable[Tile], angles: List[int]) -> GenTiles:
@@ -100,11 +103,22 @@ def read_tiles(path: str, *, infinite=False) -> GenTiles:
 
 
 def download_backgrounds(path: str) -> None:
-    pass  # TODO
+    if os.path.isdir(path):
+        print('Needed data has been already downloaded!')
+        return
+
+    os.makedirs(path)
+    print('Downloading will take some time! 1GB approximately')
+    zip_path = os.path.join(path, 'data.zip')
+    wget.download(BACKGROUND_LINK, zip_path)
+    print('Downloaded! Unzipping...')
+    with zipfile.ZipFile(os.path.join(zip_path), 'r') as zf:
+        zf.extractall(path)
+    os.remove(zip_path)
 
 
 def main() -> None:
-    infinite = False
+    infinite = True  # True means no debug
 
     tiles_path = os.path.join('data', 'raw')
     sizes = [20, 50, 100, 150, 200, 300, 400]  # TODO tune
