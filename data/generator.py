@@ -17,6 +17,10 @@ Img = Image.Image
 transparent = (255, 255, 255, 0)
 background_size = 1000
 n_images = 5000
+sizes = [100, 120, 150, 180, 190, 200]
+angles = [5, 6, 7, 8, 10, 15, 16, 17, 20, 25, 30]
+n_tiles_lo = 3
+n_tiles_hi = 15
 
 
 @dataclass
@@ -61,16 +65,44 @@ def take(xs: Iterable, n) -> Generator:
         yield x
 
 
-def generate_data_image_helper(tiles: Iterable[Tile], background: Img) -> Generator[DataImage, None, None]:
+def is_in_rect(x: int, y: int, label: Label) -> bool:
+    return label.x <= x <= label.x + label.w and label.y <= y <= label.y + label.h
+
+
+def is_intersect_helper(a: Label, b: Label) -> bool:
+    return any([
+        is_in_rect(a.x, a.y, b),
+        is_in_rect(a.x + a.w, a.y, b),
+        is_in_rect(a.x, a.y + a.h, b),
+        is_in_rect(a.x + a.w, a.y + a.h, b),
+        is_in_rect(a.x + a.w // 3, a.y + a.h // 2, b),
+        is_in_rect(a.x + 2 * a.w // 3, a.y + a.h // 2, b),
+        is_in_rect(a.x + a.w // 2, a.y + a.h // 3, b),
+        is_in_rect(a.x + a.w // 2, a.y + 2 * a.h // 3, b),
+    ])
+
+
+def is_intersect(x: Label, ys: List[Label]) -> bool:
+    for y in ys:
+        if is_intersect_helper(x, y):
+            return True
+    return False
+
+
+def generate_data_image_helper(
+        tiles: Iterable[Tile], background: Img, n_tries: int = 5
+) -> Generator[DataImage, None, None]:
     labels = []
     for tile in tiles:
-        w, h = background.size
-        x = random.randrange(w)
-        y = random.randrange(h)
-        background.paste(tile.img, (x, y), tile.img)
-        labels.append(
-            Label(x=x, y=y, w=tile.label.w, h=tile.label.h, c=tile.label.c)
-        )
+        for _ in range(n_tries):
+            w, h = background.size
+            x = random.randrange(w - tile.label.w)
+            y = random.randrange(h - tile.label.h)
+            label = Label(x=x, y=y, w=tile.label.w, h=tile.label.h, c=tile.label.c)
+            if not is_intersect(label, labels):
+                labels.append(label)
+                background.paste(tile.img, (x, y), tile.img)
+                break
 
     yield DataImage(
         background,
@@ -81,7 +113,7 @@ def generate_data_image_helper(tiles: Iterable[Tile], background: Img) -> Genera
 def generate_data_images(tiles: Iterable[Tile], bg_path: str) -> Generator[DataImage, None, None]:
     for filename in (f for f in os.listdir(bg_path)
                      if os.path.isfile(os.path.join(bg_path, f))):
-        n_tiles = random.randrange(1, 10)
+        n_tiles = random.randrange(n_tiles_lo, n_tiles_hi)
         background = Image.open(os.path.join(bg_path, filename))
         size = min(background.size)
         square_background = Image.new(background.mode, (size, size))
@@ -167,8 +199,6 @@ def main() -> None:
     tiles_path = os.path.join('data', 'raw')
     bg_path = os.path.join('data', 'background', 'val2017')
     res_path = os.path.join('data', 'dataset')
-    sizes = [100, 120, 150, 180, 190, 200, 200]  # TODO tune
-    angles = [5, 10, 15, 20, 30, 35]
 
     debug = False
 
