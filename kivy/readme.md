@@ -12,4 +12,6 @@ sudo apt-get upgrade
 1. `sudo apt install libffi-dev`
 1. `pip3 install cython`
 1. `pip3 install jnius`
+1. `buildozer init` (this will create a file `buildozer.spec`
+ where you may configure app name, package, and more)
 1. `buildozer -v android debug` (this may take a while)
