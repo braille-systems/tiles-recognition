@@ -4,6 +4,7 @@ import cv2
 import imutils
 import numpy as np
 from scipy.spatial import distance as dist
+import os
 
 
 def find_dots(letter_pic):
@@ -126,6 +127,7 @@ def find_pentagons(img):
     ret, thresh = cv2.threshold(blurred, 127, 255, 1)
 
     contours, h = cv2.findContours(thresh, 1, 2)
+    contours = imutils.grab_contours(contours)
 
     big_contours = []
     displayed_pic = img.copy()
@@ -265,7 +267,10 @@ def get_warped_tiles(pentagon_contours, img_with_pentagons):
 
 
 def main():
-    whole_img = cv2.imread('images/1b.JPG')
+    print(os.getcwd())
+    os.chdir('..')
+    whole_img = cv2.imread('images/2.jpg')
+
     # whole_img = imutils.rotate_bound(whole_img.copy(), 20)  # you can test rotation here
     whole_img = imutils.resize(whole_img, width=1500)
     pentagon_contours, img_with_pentagons = find_pentagons(whole_img)
