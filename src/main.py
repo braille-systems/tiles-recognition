@@ -1,6 +1,5 @@
 import os
 from typing import NewType, List, Optional, Tuple
-from collections import defaultdict
 from contextlib import contextmanager
 
 import cv2 as cv
@@ -10,11 +9,11 @@ import numpy as np
 
 import utils
 from dots import BrailleDots, dots_to_chars
+from defs import Point, BoundingBox
 
 
 Image = NewType('Image', np.ndarray)
 Contour = NewType('Contours', np.ndarray)
-BoundingBox = NewType('BoundingBox', Tuple[int, int, int, int])
 
 
 @contextmanager
@@ -32,8 +31,17 @@ def save(filename: str, image: Image) -> None:
 
 
 def detect_polygons(image: Image) -> List[Contour]:
+    """Return contours of all tile-like polygons"""
+
+    gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+
+    blurred = cv.GaussianBlur(
+        gray, ksize=(9, 9), sigmaX=1, borderType=cv.BORDER_REFLECT
+    )
+    save('blurred', blurred)
+
     binary = cv.adaptiveThreshold(
-        image,
+        blurred,
         maxValue=255,
         adaptiveMethod=cv.ADAPTIVE_THRESH_GAUSSIAN_C,
         thresholdType=cv.THRESH_BINARY,
@@ -58,10 +66,11 @@ def detect_polygons(image: Image) -> List[Contour]:
     polygons = [polygon for polygon in polygons if 5 <= len(polygon) <= 9]
     print(f'\tpolygons found: {len(polygons)}')
 
-    contours_image = cv.drawContours(
-        image, polygons,
+    contours_image = image.copy()
+    cv.drawContours(
+        contours_image, polygons,
         contourIdx=-1,  # Draw all
-        color=255
+        color=(0, 0, 255)  # BGR
     )
     save(f'contours', contours_image)
 
@@ -97,26 +106,12 @@ def get_warped_tile(image: Image, contour: Contour) -> Optional[Image]:
 
     tile_width = 24  # millimeters
     tile_height = 30  # millimeters
-    height = bottom_right[1] - top_right[1]
-    width = bottom_right[0] - bottom_left[0]
+    height = utils.distance(bottom_right, top_right)
+    width = utils.distance(bottom_right, bottom_left)
     if abs(height / width - tile_height / tile_width) < 0.2:  # TODO подобрать коэф
         save(f'warped-{top_left}', warped)
         return warped
     return None
-
-
-def bb_in_bb(checked: BoundingBox, reference: BoundingBox) -> bool:
-    x, y, w, h = checked
-    xx = x + w
-    yy = y + h
-
-    rx, ry, rw, rh = reference
-    rxx = rx + rw
-    ryy = ry + rh
-
-    xs_in = rx <= x <= rxx and rx <= xx <= rxx
-    ys_in = ry <= y <= ryy and ry <= yy <= ryy
-    return xs_in and ys_in
 
 
 def add_dot(dots: BrailleDots, bb: BoundingBox) -> BrailleDots:
@@ -132,15 +127,15 @@ def add_dot(dots: BrailleDots, bb: BoundingBox) -> BrailleDots:
     l3 = 43
 
     rects = [
-        ('d1', (s1, l1, s1 + size, l1 + size)),
-        ('d2', (s1, l2, s1 + size, l2 + size)),
-        ('d3', (s1, l3, s1 + size, l3 + size)),
-        ('d4', (s2, l1, s2 + size, l1 + size)),
-        ('d5', (s2, l2, s2 + size, l2 + size)),
-        ('d6', (s2, l3, s2 + size, l3 + size)),
+        ('d1', (s2, l1, s2 + size, l1 + size)),
+        ('d2', (s2, l2, s2 + size, l2 + size)),
+        ('d3', (s2, l3, s2 + size, l3 + size)),
+        ('d4', (s1, l1, s1 + size, l1 + size)),
+        ('d5', (s1, l2, s1 + size, l2 + size)),
+        ('d6', (s1, l3, s1 + size, l3 + size)),
     ]
     for dot, rect in rects:
-        if bb_in_bb(bb, rect):
+        if utils.bb_in_bb(bb, rect):
             return dots.copy(**{dot: True})
     return dots
 
@@ -149,8 +144,10 @@ def detect_dots(tile: Image) -> BrailleDots:
     resized = imutils.resize(tile, width=50)
     save('resized', resized)
 
+    gray = cv.cvtColor(resized, cv.COLOR_BGR2GRAY)
+
     binary = cv.adaptiveThreshold(
-        resized,
+        gray,
         maxValue=255,
         adaptiveMethod=cv.ADAPTIVE_THRESH_GAUSSIAN_C,
         thresholdType=cv.THRESH_BINARY,
@@ -170,12 +167,13 @@ def detect_dots(tile: Image) -> BrailleDots:
     )
 
     dots = BrailleDots()
-    copy = tile.copy()
+    copy = closing.copy()
     for contour in contours:
         bb = cv.boundingRect(contour)
         dots = add_dot(dots, bb)
         x, y, w, h = bb
-        cv.rectangle(copy, (x, y), (x + w, y + h), color=255)
+        cv.rectangle(copy, (x, y), (x + w, y + h), color=(100, 100, 100))
+    save('bbs', copy)
 
     return dots
 
@@ -183,36 +181,59 @@ def detect_dots(tile: Image) -> BrailleDots:
 def run(image: Image) -> None:
     save('source', image)
 
-    with cd('preprocessing'):
-        gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-        save('gray', gray)
-
-        blurred = cv.GaussianBlur(
-            gray, ksize=(9, 9), sigmaX=1, borderType=cv.BORDER_REFLECT
-        )
-        save('blurred', blurred)
+    result = image.copy()
 
     with cd('detection'):
-        polygons = detect_polygons(blurred)
+        polygons = sorted(
+            detect_polygons(image),
+            key=lambda contour: cv.boundingRect(contour)[1]  # y coord.
+        )
+        cv.drawContours(
+            result, polygons,
+            contourIdx=-1,  # Draw all
+            color=(0, 0, 255)  # BGR
+        )
 
     with cd('warping'):
-        tiles = [get_warped_tile(gray, polygon) for polygon in polygons]
-        tiles = [tile for tile in tiles if tile is not None]
+        tiles = []
+        tile_bbs = []
+        for polygon in polygons:
+            tile = get_warped_tile(image, polygon)
+            if tile is not None:
+                tiles.append(tile)
+                tile_bbs.append(cv.boundingRect(polygon))
 
-    with cd('classification'):
-        d = defaultdict(list)
-        for i, tile in enumerate(tiles):
-            with cd(str(i)):
+    for i, (tile, bb) in enumerate(zip(tiles, tile_bbs)):
+        with cd('dotification'):
+            with cd(f'tile-{i}'):
                 dots = detect_dots(tile)
-                d[dots].append(tile)
+                c = dots_to_chars.get(dots)
+                save(f'{str(c)}-{dots}.png', tile)
 
-    with cd('result'):
-        for dots, tiles in d.items():
-            c = dots_to_chars.get(dots)
-            if c is None:
-                continue
-            for i, tile in enumerate(tiles):
-                cv.imwrite(f'{str(c)}-{dots}-{str(i)}.png', tile)
+        if c is not None:
+            x, y, w, h = bb
+            cv.putText(
+                result, c,
+                org=(x, y + h + 20),
+                fontFace=cv.FONT_HERSHEY_COMPLEX,
+                fontScale=0.6,
+                color=(0, 255, 0),
+                thickness=1
+            )
+            cv.putText(
+                result, str(dots),
+                org=(x, y + h + 40),
+                fontFace=cv.FONT_HERSHEY_COMPLEX,
+                fontScale=0.5,
+                color=(0, 255, 0),
+                thickness=1
+            )
+            cv.rectangle(
+                result, (x, y), (x + w, y + h),
+                color=(0, 255, 0), thickness=1
+            )
+
+    cv.imwrite('result.png', result)
 
 
 def main():
@@ -227,8 +248,8 @@ def main():
             if image is None:
                 continue
 
-            path = os.path.join(out_path, filename)
-            with utils.cd(utils.remove_file_extension(path)):
+            no_ext = utils.remove_file_extension(filename)
+            with utils.cd(os.path.join(out_path, f'image-{no_ext}')):
                 run(image)
 
     print('Done!')
