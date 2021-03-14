@@ -108,7 +108,7 @@ def get_warped_tile(image: Image, contour: Contour) -> Optional[Image]:
     tile_height = 30  # millimeters
     height = utils.distance(bottom_right, top_right)
     width = utils.distance(bottom_right, bottom_left)
-    if abs(height / width - tile_height / tile_width) < 0.2:  # TODO подобрать коэф
+    if abs(height / width - tile_height / tile_width) < 0.6:
         save(f'warped-{top_left}', warped)
         return warped
     return None
@@ -127,12 +127,12 @@ def add_dot(dots: BrailleDots, bb: BoundingBox) -> BrailleDots:
     l3 = 43
 
     rects = [
-        ('d1', (s2, l1, s2 + size, l1 + size)),
-        ('d2', (s2, l2, s2 + size, l2 + size)),
-        ('d3', (s2, l3, s2 + size, l3 + size)),
-        ('d4', (s1, l1, s1 + size, l1 + size)),
-        ('d5', (s1, l2, s1 + size, l2 + size)),
-        ('d6', (s1, l3, s1 + size, l3 + size)),
+        ('d1', (s1, l1, s2 + size, l1 + size)),
+        ('d2', (s1, l2, s2 + size, l2 + size)),
+        ('d3', (s1, l3, s2 + size, l3 + size)),
+        ('d4', (s2, l1, s1 + size, l1 + size)),
+        ('d5', (s2, l2, s1 + size, l2 + size)),
+        ('d6', (s2, l3, s1 + size, l3 + size)),
     ]
     for dot, rect in rects:
         if utils.bb_in_bb(bb, rect):
@@ -186,7 +186,7 @@ def run(image: Image) -> None:
     with cd('detection'):
         polygons = sorted(
             detect_polygons(image),
-            key=lambda contour: cv.boundingRect(contour)[1]  # y coord.
+            key=lambda contour: cv.boundingRect(contour)[0]
         )
         cv.drawContours(
             result, polygons,
@@ -199,39 +199,52 @@ def run(image: Image) -> None:
         tile_bbs = []
         for polygon in polygons:
             tile = get_warped_tile(image, polygon)
+            bb = cv.boundingRect(polygon)
             if tile is not None:
                 tiles.append(tile)
-                tile_bbs.append(cv.boundingRect(polygon))
+                tile_bbs.append(bb)
 
-    for i, (tile, bb) in enumerate(zip(tiles, tile_bbs)):
-        with cd('dotification'):
+            x, y, _, h = bb
+            cv.putText(
+                result, 'X',
+                org=(x + 4, y + 10),
+                fontFace=cv.FONT_HERSHEY_COMPLEX,
+                fontScale=0.4,
+                color=(255, 100, 0),
+                thickness=1
+            )
+
+    with cd('dotification'):
+        for i, (tile, bb) in enumerate(zip(tiles, tile_bbs)):
             with cd(f'tile-{i}'):
                 dots = detect_dots(tile)
                 c = dots_to_chars.get(dots)
                 save(f'{str(c)}-{dots}.png', tile)
 
-        if c is not None:
-            x, y, w, h = bb
-            cv.putText(
-                result, c,
-                org=(x, y + h + 20),
-                fontFace=cv.FONT_HERSHEY_COMPLEX,
-                fontScale=0.6,
-                color=(0, 255, 0),
-                thickness=1
-            )
-            cv.putText(
-                result, str(dots),
-                org=(x, y + h + 40),
-                fontFace=cv.FONT_HERSHEY_COMPLEX,
-                fontScale=0.5,
-                color=(0, 255, 0),
-                thickness=1
-            )
-            cv.rectangle(
-                result, (x, y), (x + w, y + h),
-                color=(0, 255, 0), thickness=1
-            )
+            if c is not None:
+                x, y, w, h = bb
+                scale = 0.35
+                color = (255, 255, 100)
+                cv.putText(
+                    result, f'{i}: {c}',
+                    org=(x, y + h + 15),
+                    fontFace=cv.FONT_HERSHEY_COMPLEX,
+                    fontScale=scale,
+                    color=color,
+                    thickness=0
+                )
+                cv.putText(
+                    result, str(dots),
+                    org=(x, y + h + 30),
+                    fontFace=cv.FONT_HERSHEY_COMPLEX,
+                    fontScale=scale,
+                    color=color,
+                    thickness=0
+                )
+                cv.rectangle(
+                    result, (x, y), (x + w, y + h),
+                    color=(0, 255, 0), thickness=1
+                )
 
     cv.imwrite('result.png', result)
 
