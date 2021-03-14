@@ -119,7 +119,7 @@ def add_dot(dots: BrailleDots, bb: BoundingBox) -> BrailleDots:
 
     # Dots sides (left and right)
     s1 = 8
-    s2 = 27
+    s2 = 24
 
     # Dots levels
     l1 = 8
@@ -127,12 +127,12 @@ def add_dot(dots: BrailleDots, bb: BoundingBox) -> BrailleDots:
     l3 = 43
 
     rects = [
-        ('d1', (s1, l1, s2 + size, l1 + size)),
-        ('d2', (s1, l2, s2 + size, l2 + size)),
-        ('d3', (s1, l3, s2 + size, l3 + size)),
-        ('d4', (s2, l1, s1 + size, l1 + size)),
-        ('d5', (s2, l2, s1 + size, l2 + size)),
-        ('d6', (s2, l3, s1 + size, l3 + size)),
+        ('d1', (s1, l1, size, size)),
+        ('d2', (s1, l2, size, size)),
+        ('d3', (s1, l3, size, size)),
+        ('d4', (s2, l1, size, size)),
+        ('d5', (s2, l2, size, size)),
+        ('d6', (s2, l3, size, size)),
     ]
     for dot, rect in rects:
         if utils.bb_in_bb(bb, rect):
@@ -142,8 +142,6 @@ def add_dot(dots: BrailleDots, bb: BoundingBox) -> BrailleDots:
 
 def detect_dots(tile: Image) -> BrailleDots:
     resized = imutils.resize(tile, width=50)
-    save('resized', resized)
-
     gray = cv.cvtColor(resized, cv.COLOR_BGR2GRAY)
 
     binary = cv.adaptiveThreshold(
@@ -156,6 +154,7 @@ def detect_dots(tile: Image) -> BrailleDots:
     )
     save('binary', binary)
 
+    # Alternative approach is not to close and set area threshold
     closing = cv.morphologyEx(
         binary, op=cv.MORPH_CLOSE,
         kernel=cv.getStructuringElement(cv.MORPH_ELLIPSE, (3, 3))
@@ -178,9 +177,7 @@ def detect_dots(tile: Image) -> BrailleDots:
     return dots
 
 
-def run(image: Image) -> None:
-    save('source', image)
-
+def run(image: Image) -> Image:
     result = image.copy()
 
     with cd('detection'):
@@ -246,7 +243,7 @@ def run(image: Image) -> None:
                     color=(0, 255, 0), thickness=1
                 )
 
-    cv.imwrite('result.png', result)
+    return result
 
 
 def main():
@@ -263,7 +260,9 @@ def main():
 
             no_ext = utils.remove_file_extension(filename)
             with utils.cd(os.path.join(out_path, f'image-{no_ext}')):
-                run(image)
+                save('source', image)
+                result = run(image)
+                cv.imwrite('result.png', result)
 
     print('Done!')
 
