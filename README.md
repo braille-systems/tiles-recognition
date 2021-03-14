@@ -17,4 +17,12 @@ You may find additional information about Braille Tiles in the [article](https:/
 О плитках можно почитать в [статье](https://github.com/braille-systems/braille-trainer/wiki/tiles)
 
 <img src="https://user-images.githubusercontent.com/23435506/77844607-9a972180-71b0-11ea-8421-1b8414d472f4.jpg" height="280"><img src="https://user-images.githubusercontent.com/23435506/77844630-d336fb00-71b0-11ea-9fef-400a9af1de59.png" height="280">
-<img src="https://user-images.githubusercontent.com/23435506/77844631-e0ec8080-71b0-11ea-969d-4618aea95e86.png" height="100"> 
+<img src="https://user-images.githubusercontent.com/23435506/77844631-e0ec8080-71b0-11ea-969d-4618aea95e86.png" height="100">
+
+## Run
+
+```
+$ cd tiles-recognition
+$ pip install -r requirements.txt
+$ python src/main.py
+```
