@@ -1,3 +1,5 @@
+Old tiles recognition OpenCV implementation saved for history.
+
 # Braille Tiles Recognition
 This repository is about automatic recognition of educational Braille Tiles with computer vision.
 
