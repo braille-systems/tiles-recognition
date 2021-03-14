@@ -104,6 +104,8 @@ def get_warped_tile(image: Image, contour: Contour) -> Optional[Image]:
 
 
 def classify(tile: Image) -> str:
+    resized = imutils.resize(tile, width=100)
+    save('resized', resized)
     return 'а'
     pass  # TODO
 
@@ -126,12 +128,15 @@ def run(image: Image) -> None:
     with cd('warping'):
         tiles = [get_warped_tile(gray, polygon) for polygon in polygons]
         tiles = [tile for tile in tiles if tile is not None]
+        # filter by size
 
     with cd('classification'):
         d = defaultdict(list)
-        for tile in tiles:
-            d[classify(tile)].append(tile)
+        for i, tile in enumerate(tiles):
+            with cd(str(i)):
+                d[classify(tile)].append(tile)
 
+    with cd('result'):
         for c, tiles in d.items():
             with utils.cd(c):
                 for i, tile in enumerate(tiles):
