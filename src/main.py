@@ -170,8 +170,12 @@ def detect_dots(tile: Image) -> BrailleDots:
     )
 
     dots = BrailleDots()
+    copy = tile.copy()
     for contour in contours:
-        dots = add_dot(dots, cv.boundingRect(contour))
+        bb = cv.boundingRect(contour)
+        dots = add_dot(dots, bb)
+        x, y, w, h = bb
+        cv.rectangle(copy, (x, y), (x + w, y + h), color=255)
 
     return dots
 
