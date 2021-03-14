@@ -18,10 +18,33 @@ You may find additional information about Braille Tiles in the [article](https:/
 
 О плитках можно почитать в [статье](https://github.com/braille-systems/braille-trainer/wiki/tiles).
 
-## Run
+![result](https://user-images.githubusercontent.com/25281147/111088052-4195da00-8536-11eb-8b6d-84635c324fca.png)
+
+## Датасет
+
+Датасет можно скачать ![тут](https://disk.yandex.ru/d/vS5nZHeK9lezeQ?w=1). Архив нужно распаковать в корне проекта (рядом с `src` и `images` появится директория `data`).
+
+Основные черты примеров:
+
+- Разный фон на фотографии
+- Перспективные искажения
+- Различная освещенность
+- Различные направления света + рассеянный свет (точки металлические и бликуют)
+- Разные плитки
+- Плитки комбинируются в слова, либо разбрасываются по изображению
+- Плитки разложены под разными углами к горизонту камеры
+- Различные фокус и резкость камеры
+
+## Как запускать
 
 ```
 $ cd tiles-recognition
 $ pip install -r requirements.txt
 $ python src/main.py
 ```
+
+TODO
+
+## Больше примеров работы
+
+TODO
