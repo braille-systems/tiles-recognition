@@ -1,5 +1,5 @@
 import os
-from typing import NewType, List, Optional
+from typing import NewType, List, Optional, Tuple
 from collections import defaultdict
 from contextlib import contextmanager
 
@@ -9,10 +9,12 @@ from imutils import perspective
 import numpy as np
 
 import utils
+from dots import BrailleDots, dots_to_chars
 
 
 Image = NewType('Image', np.ndarray)
-Contour = NewType('COntours', np.ndarray)
+Contour = NewType('Contours', np.ndarray)
+BoundingBox = NewType('BoundingBox', Tuple[int, int, int, int])
 
 
 @contextmanager
@@ -46,7 +48,7 @@ def detect_polygons(image: Image) -> List[Contour]:
     )
     save('opening', opening)
 
-    contours, hierarchy = cv.findContours(
+    contours, _ = cv.findContours(
         opening, mode=cv.RETR_LIST, method=cv.CHAIN_APPROX_SIMPLE
     )
 
@@ -103,11 +105,75 @@ def get_warped_tile(image: Image, contour: Contour) -> Optional[Image]:
     return None
 
 
-def classify(tile: Image) -> str:
-    resized = imutils.resize(tile, width=100)
+def bb_in_bb(checked: BoundingBox, reference: BoundingBox) -> bool:
+    x, y, w, h = checked
+    xx = x + w
+    yy = y + h
+
+    rx, ry, rw, rh = reference
+    rxx = rx + rw
+    ryy = ry + rh
+
+    xs_in = rx <= x <= rxx and rx <= xx <= rxx
+    ys_in = ry <= y <= ryy and ry <= yy <= ryy
+    return xs_in and ys_in
+
+
+def add_dot(dots: BrailleDots, bb: BoundingBox) -> BrailleDots:
+    size = 18
+
+    # Dots sides (left and right)
+    s1 = 8
+    s2 = 27
+
+    # Dots levels
+    l1 = 8
+    l2 = 25
+    l3 = 43
+
+    rects = [
+        ('d1', (s1, l1, s1 + size, l1 + size)),
+        ('d2', (s1, l2, s1 + size, l2 + size)),
+        ('d3', (s1, l3, s1 + size, l3 + size)),
+        ('d4', (s2, l1, s2 + size, l1 + size)),
+        ('d5', (s2, l2, s2 + size, l2 + size)),
+        ('d6', (s2, l3, s2 + size, l3 + size)),
+    ]
+    for dot, rect in rects:
+        if bb_in_bb(bb, rect):
+            return dots.copy(**{dot: True})
+    return dots
+
+
+def detect_dots(tile: Image) -> BrailleDots:
+    resized = imutils.resize(tile, width=50)
     save('resized', resized)
-    return 'а'
-    pass  # TODO
+
+    binary = cv.adaptiveThreshold(
+        resized,
+        maxValue=255,
+        adaptiveMethod=cv.ADAPTIVE_THRESH_GAUSSIAN_C,
+        thresholdType=cv.THRESH_BINARY,
+        blockSize=13,
+        C=20,
+    )
+    save('binary', binary)
+
+    closing = cv.morphologyEx(
+        binary, op=cv.MORPH_CLOSE,
+        kernel=cv.getStructuringElement(cv.MORPH_ELLIPSE, (3, 3))
+    )
+    save('closing', closing)
+
+    contours, _ = cv.findContours(
+        closing, mode=cv.RETR_LIST, method=cv.CHAIN_APPROX_SIMPLE
+    )
+
+    dots = BrailleDots()
+    for contour in contours:
+        dots = add_dot(dots, cv.boundingRect(contour))
+
+    return dots
 
 
 def run(image: Image) -> None:
@@ -128,25 +194,26 @@ def run(image: Image) -> None:
     with cd('warping'):
         tiles = [get_warped_tile(gray, polygon) for polygon in polygons]
         tiles = [tile for tile in tiles if tile is not None]
-        # filter by size
 
     with cd('classification'):
         d = defaultdict(list)
         for i, tile in enumerate(tiles):
             with cd(str(i)):
-                d[classify(tile)].append(tile)
+                dots = detect_dots(tile)
+                d[dots].append(tile)
 
     with cd('result'):
-        for c, tiles in d.items():
-            with utils.cd(c):
-                for i, tile in enumerate(tiles):
-                    cv.imwrite(str(i) + '.png', tile)
+        for dots, tiles in d.items():
+            c = dots_to_chars.get(dots)
+            if c is None:
+                continue
+            for i, tile in enumerate(tiles):
+                cv.imwrite(f'{str(c)}-{dots}-{str(i)}.png', tile)
 
 
-if __name__ == '__main__':
+def main():
     images_path = 'images'
     out_path = 'out'
-    log = True
 
     for root, _, filenames in os.walk(images_path):
         for filename in filenames:
@@ -161,5 +228,10 @@ if __name__ == '__main__':
                 run(image)
 
     print('Done!')
+
+
+if __name__ == '__main__':
+    log = True
+    main()
 else:
     raise RuntimeError('I am main!')
