@@ -1,10 +1,11 @@
 import os
-from typing import NewType, List
+from typing import NewType, List, Optional
 from collections import defaultdict
 from contextlib import contextmanager
 
 import cv2 as cv
 import imutils
+from imutils import perspective
 import numpy as np
 
 import utils
@@ -65,13 +66,45 @@ def detect_polygons(image: Image) -> List[Contour]:
     return polygons
 
 
-def get_warped_tile(image: Image, contour: Contour) -> Image:
+def get_warped_tile(image: Image, contour: Contour) -> Optional[Image]:
+    contour = sorted(
+        [(contour[i][0][0], contour[i][0][1])
+         for i in range(len(contour))],
+        key=sum
+    )
+    print(f'\tcontour = {contour}')
 
-    # TODO
-    pass
+    bottom_right = contour[-1]
+    top_left_top = min(contour[:2], key=lambda p: p[1])
+    top_left_bottom = max(contour[:2], key=lambda p: p[1])
+    top_left = (top_left_bottom[0], top_left_top[1])
+
+    max_dim = max(image.shape)
+    top_right = sorted(contour, key=lambda p: p[0] + max_dim - p[1])[-1]
+    bottom_left = sorted(contour, key=lambda p: max_dim - p[0] + p[1])[-1]
+
+    print(f'\t\ttop_left_top = {top_left_top}')
+    print(f'\t\ttop_left_bottom = {top_left_bottom}')
+    print(f'\t\tbottom_right = {bottom_right}')
+    print(f'\t\ttop_right = {top_right}')
+    print(f'\t\tbottom_left = {bottom_left}')
+
+    warped = perspective.four_point_transform(
+        image, np.array([top_left, top_right, bottom_right, bottom_left])
+    )
+
+    tile_width = 24  # millimeters
+    tile_height = 30  # millimeters
+    height = bottom_right[1] - top_right[1]
+    width = bottom_right[0] - bottom_left[0]
+    if abs(height / width - tile_height / tile_width) < 0.2:  # TODO подобрать коэф
+        save(f'warped-{top_left}', warped)
+        return warped
+    return None
 
 
 def classify(tile: Image) -> str:
+    return 'а'
     pass  # TODO
 
 
@@ -91,7 +124,8 @@ def run(image: Image) -> None:
         polygons = detect_polygons(blurred)
 
     with cd('warping'):
-        tiles = []  # [get_warped_tile(gray, polygon) for polygon in polygons]
+        tiles = [get_warped_tile(gray, polygon) for polygon in polygons]
+        tiles = [tile for tile in tiles if tile is not None]
 
     with cd('classification'):
         d = defaultdict(list)
