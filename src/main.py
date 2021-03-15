@@ -108,7 +108,7 @@ def get_warped_tile(image: Image, contour: Contour) -> Optional[Image]:
     tile_height = 30  # millimeters
     height = utils.distance(bottom_right, top_right)
     width = utils.distance(bottom_right, bottom_left)
-    if abs(height / width - tile_height / tile_width) < 0.6:
+    if width != 0 and abs(height / width - tile_height / tile_width) < 0.6:
         save(f'warped-{top_left}', warped)
         return warped
     return None
@@ -246,8 +246,7 @@ def run(image: Image) -> Image:
     return result
 
 
-def main():
-    images_path = 'images'
+def main(images_path='images'):
     out_path = 'out'
 
     for root, _, filenames in os.walk(images_path):
@@ -269,6 +268,6 @@ def main():
 
 if __name__ == '__main__':
     log = True
-    main()
+    main('raw')
 else:
     raise RuntimeError('I am main!')
