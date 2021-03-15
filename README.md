@@ -4,9 +4,13 @@ This repository is about automatic recognition of educational Braille Tiles with
 
 The primary goal is to develop a program for self-education of the visually impaired for studying Louis Braille's symbols system. The program will issue tasks - to assemble a word from tiles, and the trainee should compose this word and demonstrate it in front of the camera. The program will tell whether the answer is correct.
 
-We plan to make this program a part of the educational Android app [Learn Braille](https://github.com/braille-systems/learn-braille).
+Further information about our Optical Braille Recognition research: [wiki pages](https://github.com/braille-systems/brl_ocr/wiki).
+
+We plan to make this program a part of educational Android app [Learn Braille](https://github.com/braille-systems/learn-braille).
 
 You may find additional information about Braille Tiles in the [article](https://github.com/braille-systems/braille-trainer/wiki/tiles) (Russian).
+
+Implementations: OpenCV - [`develop` branch](https://github.com/braille-systems/tiles-recognition/tree/develop), PyTorch/YOLOv3 - [`rcnn` branch](https://github.com/braille-systems/tiles-recognition/tree/rcnn).
 
 # Распознавание плиток Брайля
 
@@ -52,7 +56,7 @@ $ python src/main.py
 
 <details>
   <summary>Картинки</summary>
-  
+
   ![10](https://user-images.githubusercontent.com/25281147/111091618-93456100-8544-11eb-8101-84b994ba7c25.png)
   ![7](https://user-images.githubusercontent.com/25281147/111091604-8a548f80-8544-11eb-84b2-56dc62d3b829.png)
   ![8](https://user-images.githubusercontent.com/25281147/111091608-8cb6e980-8544-11eb-92f2-c84de0b96116.png)
