@@ -63,14 +63,23 @@ $ python src/main.py
 <details>
   <summary>Картинки</summary>
 
+С неискаженными, хорошо освещёнными картинками, алгоритм справляется хорошо.
 ![10](https://user-images.githubusercontent.com/25281147/111091618-93456100-8544-11eb-8101-84b994ba7c25.png)
 ![7](https://user-images.githubusercontent.com/25281147/111091604-8a548f80-8544-11eb-84b2-56dc62d3b829.png)
+
+Потребуется как-то фильтровать контуры, чтобы несколько не приходилось на одину плитку.
 ![8](https://user-images.githubusercontent.com/25281147/111091608-8cb6e980-8544-11eb-92f2-c84de0b96116.png)
 ![9](https://user-images.githubusercontent.com/25281147/111091614-904a7080-8544-11eb-8420-cb23ef783908.png)
 ![3](https://user-images.githubusercontent.com/25281147/111091584-79a41980-8544-11eb-9ea9-508022651839.png)
 ![4](https://user-images.githubusercontent.com/25281147/111091587-7c067380-8544-11eb-9b52-29a564ecce57.png)
 ![5](https://user-images.githubusercontent.com/25281147/111091592-7f016400-8544-11eb-93f9-49980f84f78d.png)
+
+Длинные тени приводят к тому, что точки выходят за рамки отведённого bounding box'a.
+Нужно ослабить условия на добавление точки в шеститочие.
 ![6](https://user-images.githubusercontent.com/25281147/111091600-858fdb80-8544-11eb-82ca-2dc77c12642a.png)
+
+С очень тёмными изображениями алгоритм справляется плохо.
+Потребуется увеличить чувствительность бинаризации.
 ![1](https://user-images.githubusercontent.com/25281147/111091767-15ce2080-8545-11eb-913b-df3bf70d3e13.png)
 ![2](https://user-images.githubusercontent.com/25281147/111091771-18c91100-8545-11eb-8819-be9b8216ab9d.png)
 
