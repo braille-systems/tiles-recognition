@@ -22,7 +22,7 @@ You may find additional information about Braille Tiles in the [article](https:/
 
 ## Датасет
 
-Датасет можно скачать ![тут](https://disk.yandex.ru/d/vS5nZHeK9lezeQ?w=1). Архив нужно распаковать в корне проекта (рядом с `src` и `images` появится директория `data`).
+Датасет можно скачать [тут](https://disk.yandex.ru/d/vS5nZHeK9lezeQ?w=1). Архив нужно распаковать в корне проекта (рядом с `src` и `images` появится директория `data`).
 
 Основные черты примеров:
 
