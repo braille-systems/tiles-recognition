@@ -268,6 +268,6 @@ def main(images_path='images'):
 
 if __name__ == '__main__':
     log = True
-    main('raw')
+    main('data')
 else:
     raise RuntimeError('I am main!')
