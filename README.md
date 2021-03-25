@@ -6,11 +6,13 @@ The primary goal is to develop a program for self-education of the visually impa
 The program will issue tasks - to assemble a word from tiles, and the trainee should compose this word and demonstrate it in front of the camera.
 The program will tell whether the answer is correct.
 
-We plan to make this program a part of educational Android app [Learn Braille](https://github.com/braille-systems/learn-braille).
+Implementations: OpenCV - [`master` branch](https://github.com/braille-systems/tiles-recognition), PyTorch/YOLOv3 - [`rcnn` branch](https://github.com/braille-systems/tiles-recognition/tree/rcnn).
+
+[OpenCV report]() (RU).
+
+We plan to make this program a part of the educational Android app [Learn Braille](https://github.com/braille-systems/learn-braille).
 
 You may find additional information about Braille Tiles in the [article](https://github.com/braille-systems/braille-trainer/wiki/tiles) (Russian).
-
-Implementations: OpenCV - [`develop` branch](https://github.com/braille-systems/tiles-recognition/tree/develop), PyTorch/YOLOv3 - [`rcnn` branch](https://github.com/braille-systems/tiles-recognition/tree/rcnn).
 
 Further information about our Optical Braille Recognition research: [wiki pages](https://github.com/braille-systems/brl_ocr/wiki).
 
@@ -20,15 +22,25 @@ Further information about our Optical Braille Recognition research: [wiki pages]
 
 Конечная цель - создать программу для самостоятельного обучения незрячих чтению по системе Луи Брайля. Программа будет выдавать задания - выложить слово из плиток, а ученик должен составить это слово и продемонстрировать перед камерой. Программа скажет, верно или нет.
 
+Реализации: OpenCV - [ветвь `master`](https://github.com/braille-systems/tiles-recognition), PyTorch/YOLOv3 - [ветвь `rcnn`](https://github.com/braille-systems/tiles-recognition/tree/rcnn).
+
 Мы планируем сделать эту программу частью обучающего Android-приложения [Learn Braille](https://github.com/braille-systems/learn-braille).
 
 О плитках можно почитать в [статье](https://github.com/braille-systems/braille-trainer/wiki/tiles).
 
-Реализации: OpenCV - [ветвь `develop`](https://github.com/braille-systems/tiles-recognition/tree/develop), PyTorch/YOLOv3 - [ветвь `rcnn`](https://github.com/braille-systems/tiles-recognition/tree/rcnn).
-
-Больше информации о нашем исследовании: [вики-страницы](https://github.com/braille-systems/brl_ocr/wiki)
+Больше информации о нашем исследовании: [вики-страницы](https://github.com/braille-systems/brl_ocr/wiki).
 
 ![result](https://user-images.githubusercontent.com/25281147/111088052-4195da00-8536-11eb-8b6d-84635c324fca.png)
+
+## Как запускать
+
+```
+$ cd tiles-recognition
+$ pip install -r requirements.txt
+$ python src/main.py /path/to/directory/with/images
+```
+
+Красными линиями показывается контур предполагаемой плитки. Маркер Х говорит о том, что контур не был отсеян после перспективного преобразования плитки. Зелёный контур показывает принятую и распознанную плитку.
 
 ## Датасет
 
@@ -48,15 +60,7 @@ Further information about our Optical Braille Recognition research: [wiki pages]
 
 ## Как запускать
 
-```
-$ cd tiles-recognition
-$ pip install -r requirements.txt
-$ python src/main.py
-```
 
-По умолчанию скрипт запускается на директории `data`.
-
-Красными линиями показывается контур предполагаемой плитки. Маркер Х говорит о том, что контур не был отсеян после перспективного преобразования плитки. Зелёный контур показывает принятую и распознанную плитку.
 
 ## Больше примеров работы
 
