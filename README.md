@@ -8,7 +8,7 @@ The program will tell whether the answer is correct.
 
 Implementations: OpenCV - [`master` branch](https://github.com/braille-systems/tiles-recognition), PyTorch/YOLOv3 - [`rcnn` branch](https://github.com/braille-systems/tiles-recognition/tree/rcnn).
 
-[OpenCV report]() (RU).
+[OpenCV report](https://github.com/braille-systems/tiles-recognition/blob/master/docs/report0-ru.ipynb) (RU).
 
 We plan to make this program a part of the educational Android app [Learn Braille](https://github.com/braille-systems/learn-braille).
 
@@ -24,6 +24,8 @@ Further information about our Optical Braille Recognition research: [wiki pages]
 
 Реализации: OpenCV - [ветвь `master`](https://github.com/braille-systems/tiles-recognition), PyTorch/YOLOv3 - [ветвь `rcnn`](https://github.com/braille-systems/tiles-recognition/tree/rcnn).
 
+[OpenCV отчёт](https://github.com/braille-systems/tiles-recognition/blob/master/docs/report0-ru.ipynb).
+
 Мы планируем сделать эту программу частью обучающего Android-приложения [Learn Braille](https://github.com/braille-systems/learn-braille).
 
 О плитках можно почитать в [статье](https://github.com/braille-systems/braille-trainer/wiki/tiles).
@@ -37,54 +39,20 @@ Further information about our Optical Braille Recognition research: [wiki pages]
 ```
 $ cd tiles-recognition
 $ pip install -r requirements.txt
-$ python src/main.py /path/to/directory/with/images
+$ python src/main.py -v --path=/path/to/directory/with/images
 ```
 
-Красными линиями показывается контур предполагаемой плитки. Маркер Х говорит о том, что контур не был отсеян после перспективного преобразования плитки. Зелёный контур показывает принятую и распознанную плитку.
+* Ключ `-v` - сохранять промежуточные результаты.
+* Ключ `--path` - путь к директории с картинками. По умолчанию: `./images`.
 
-## Датасет
+Интерпретация результатов:
+1. Красными линиями показывается контур предполагаемой плитки.
+2. Маркер Х говорит о том, что контур не был отсеян после перспективного преобразования плитки.
+3. Зелёный контур показывает принятую и распознанную плитку. Под плиткой - её номер в порядке слева направо, классифицированная буква и последовательность распознанных точек (в попядке сверху вниз, слева направо, F - filled, E - empty).
 
-Датасет можно скачать [тут](https://disk.yandex.ru/d/vS5nZHeK9lezeQ?w=1). Архив нужно распаковать в корне проекта (рядом с `src` и `images` появится директория `data`).
+## Примерный алгоритм
 
-Основные черты примеров:
-
-- Разный фон на фотографии
-- Перспективные искажения
-- Различная освещенность
-- Различные направления света + рассеянный свет (точки металлические и бликуют)
-- Разные плитки
-- Плитки комбинируются в слова, либо разбрасываются по изображению
-- Плитки разложены под разными углами к горизонту камеры
-- Различные фокус и резкость камеры
-- Различное удаление от камеры
-
-## Как запускать
-
-
-
-## Больше примеров работы
-
-<details>
-  <summary>Картинки</summary>
-
-С неискаженными, хорошо освещёнными картинками, алгоритм справляется хорошо.
-![10](https://user-images.githubusercontent.com/25281147/111091618-93456100-8544-11eb-8101-84b994ba7c25.png)
-![7](https://user-images.githubusercontent.com/25281147/111091604-8a548f80-8544-11eb-84b2-56dc62d3b829.png)
-
-Потребуется как-то фильтровать контуры, чтобы несколько не приходилось на одину плитку.
-![8](https://user-images.githubusercontent.com/25281147/111091608-8cb6e980-8544-11eb-92f2-c84de0b96116.png)
-![9](https://user-images.githubusercontent.com/25281147/111091614-904a7080-8544-11eb-8420-cb23ef783908.png)
-![3](https://user-images.githubusercontent.com/25281147/111091584-79a41980-8544-11eb-9ea9-508022651839.png)
-![4](https://user-images.githubusercontent.com/25281147/111091587-7c067380-8544-11eb-9b52-29a564ecce57.png)
-![5](https://user-images.githubusercontent.com/25281147/111091592-7f016400-8544-11eb-93f9-49980f84f78d.png)
-
-Длинные тени приводят к тому, что точки выходят за рамки отведённого bounding box'a.
-Нужно ослабить условия на добавление точки в шеститочие.
-![6](https://user-images.githubusercontent.com/25281147/111091600-858fdb80-8544-11eb-82ca-2dc77c12642a.png)
-
-С очень тёмными изображениями алгоритм справляется плохо.
-Потребуется увеличить чувствительность бинаризации.
-![1](https://user-images.githubusercontent.com/25281147/111091767-15ce2080-8545-11eb-913b-df3bf70d3e13.png)
-![2](https://user-images.githubusercontent.com/25281147/111091771-18c91100-8545-11eb-8819-be9b8216ab9d.png)
-
-</details>
+1. Найти многоугольники, напоминающие брайлевские плитки
+2. Вырезать каждую плитку и исправить перспективные искажения
+3. Классифицировать каждую плитку
+4. TODO: распознать составленное слово
