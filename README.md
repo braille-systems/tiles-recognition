@@ -8,7 +8,7 @@ The program will tell whether the answer is correct.
 
 Implementations: OpenCV - [`master` branch](https://github.com/braille-systems/tiles-recognition), PyTorch/YOLOv3 - [`rcnn` branch](https://github.com/braille-systems/tiles-recognition/tree/rcnn).
 
-[OpenCV implementation report (RU)](https://github.com/braille-systems/tiles-recognition/blob/master/docs/report0-ru.ipynb).
+[OpenCV implementation report (RU)](https://github.com/braille-systems/tiles-recognition/blob/master/docs/report-ru.ipynb).
 
 We plan to make this program a part of the educational Android app [Learn Braille](https://github.com/braille-systems/learn-braille).
 
@@ -24,7 +24,7 @@ Further information about our Optical Braille Recognition research: [wiki pages]
 
 Реализации: OpenCV - [ветвь `master`](https://github.com/braille-systems/tiles-recognition), PyTorch/YOLOv3 - [ветвь `rcnn`](https://github.com/braille-systems/tiles-recognition/tree/rcnn).
 
-[Отчёт по OpenCV реализации](https://github.com/braille-systems/tiles-recognition/blob/master/docs/report0-ru.ipynb).
+[Отчёт по OpenCV реализации](https://github.com/braille-systems/tiles-recognition/blob/master/docs/report-ru.ipynb).
 
 Мы планируем сделать эту программу частью обучающего Android-приложения [Learn Braille](https://github.com/braille-systems/learn-braille).
 
@@ -39,11 +39,11 @@ Further information about our Optical Braille Recognition research: [wiki pages]
 ```
 $ cd tiles-recognition
 $ pip install -r requirements.txt
-$ python src/main.py -v --path=/path/to/directory/with/images
+$ python src/main.py -v /path/to/directory/with/images
 ```
 
 * Ключ `-v` - сохранять промежуточные результаты.
-* Ключ `--path` - путь к директории с картинками. По умолчанию: `./images`.
+* Путь к директории с картинками.
 
 Интерпретация результатов:
 1. Красными линиями показывается контур предполагаемой плитки.

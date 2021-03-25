@@ -1,4 +1,5 @@
 import os
+import argparse
 from typing import NewType, List, Optional, Tuple
 from contextlib import contextmanager
 
@@ -18,7 +19,7 @@ Contour = NewType('Contours', np.ndarray)
 
 @contextmanager
 def cd(path):
-    if log:
+    if LOG:
         with utils.cd(path):
             yield
     else:
@@ -26,7 +27,7 @@ def cd(path):
 
 
 def save(filename: str, image: Image) -> None:
-    if log:
+    if LOG:
         cv.imwrite(filename + '.png', image)
 
 
@@ -177,7 +178,7 @@ def detect_dots(tile: Image) -> BrailleDots:
     return dots
 
 
-def run(image: Image) -> Image:
+def process(image: Image) -> Image:
     result = image.copy()
 
     with cd('detection'):
@@ -246,7 +247,7 @@ def run(image: Image) -> Image:
     return result
 
 
-def main(images_path='images'):
+def run(images_path: str):
     out_path = 'out'
 
     for root, _, filenames in os.walk(images_path):
@@ -258,16 +259,38 @@ def main(images_path='images'):
                 continue
 
             no_ext = utils.remove_file_extension(filename)
-            with utils.cd(os.path.join(out_path, f'image-{no_ext}')):
-                save('source', image)
-                result = run(image)
-                cv.imwrite('result.png', result)
+            with utils.cd(out_path):
+                with cd(f'image-{no_ext}'):
+                    save('source', image)
+                    result = process(image)
+                    name = 'result' if LOG else no_ext
+                    cv.imwrite(name + '.png', result)
 
     print('Done!')
 
 
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="""This utility takes png or jpg photos,
+        detects Braille Tiles and classifies them as cyrillic letters.
+        """
+    )
+    parser.add_argument(
+        '-v', '--verbose', action='store_true',
+        help='makes algorithm work verbose',
+    )
+    parser.add_argument(
+        'path', type=str,
+        help='images path to run algorithm on',
+        default='images'
+    )
+    args = parser.parse_args()
+    if args.verbose:
+        global LOG
+        LOG = True
+    run(args.path)
+
+
 if __name__ == '__main__':
-    log = True
-    main('data')
-else:
-    raise RuntimeError('I am main!')
+    LOG = False
+    main()
