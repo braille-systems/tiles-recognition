@@ -1,9 +1,7 @@
 import os
 from math import sqrt
-from pathlib import Path, PurePath
+from pathlib import Path
 from contextlib import contextmanager
-
-import cv2 as cv
 
 from defs import Point, BoundingBox
 

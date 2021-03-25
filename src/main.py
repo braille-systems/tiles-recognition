@@ -1,6 +1,6 @@
 import os
 import argparse
-from typing import NewType, List, Optional, Tuple
+from typing import NewType, List, Optional
 from contextlib import contextmanager
 
 import cv2 as cv

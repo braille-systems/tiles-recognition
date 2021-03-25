@@ -8,7 +8,7 @@ The program will tell whether the answer is correct.
 
 Implementations: OpenCV - [`master` branch](https://github.com/braille-systems/tiles-recognition), PyTorch/YOLOv3 - [`rcnn` branch](https://github.com/braille-systems/tiles-recognition/tree/rcnn).
 
-[OpenCV implementation report (RU)](https://github.com/braille-systems/tiles-recognition/blob/master/docs/report-ru.ipynb).
+[OpenCV implementation report (RU)](https://github.com/braille-systems/tiles-recognition/blob/master/docs/report.ru.md).
 
 We plan to make this program a part of the educational Android app [Learn Braille](https://github.com/braille-systems/learn-braille).
 
@@ -24,7 +24,7 @@ Further information about our Optical Braille Recognition research: [wiki pages]
 
 Реализации: OpenCV - [ветвь `master`](https://github.com/braille-systems/tiles-recognition), PyTorch/YOLOv3 - [ветвь `rcnn`](https://github.com/braille-systems/tiles-recognition/tree/rcnn).
 
-[Отчёт по OpenCV реализации](https://github.com/braille-systems/tiles-recognition/blob/master/docs/report-ru.ipynb).
+[Отчёт по OpenCV реализации](https://github.com/braille-systems/tiles-recognition/blob/master/docs/report.ru.md).
 
 Мы планируем сделать эту программу частью обучающего Android-приложения [Learn Braille](https://github.com/braille-systems/learn-braille).
 
