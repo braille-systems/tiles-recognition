@@ -2,19 +2,16 @@ import os
 import argparse
 from typing import NewType, List, Optional
 from contextlib import contextmanager
+from itertools import count
 
 import cv2 as cv
+import numpy as np
 import imutils
 from imutils import perspective
-import numpy as np
 
 import utils
 from dots import BrailleDots, dots_to_chars
-from defs import Point, BoundingBox
-
-
-Image = NewType('Image', np.ndarray)
-Contour = NewType('Contours', np.ndarray)
+from defs import Image, Contour, Point, BoundingBox
 
 
 @contextmanager
@@ -28,7 +25,32 @@ def cd(path):
 
 def save(filename: str, image: Image) -> None:
     if LOG:
-        cv.imwrite(filename + '.png', image)
+        cv.imwrite(f'{filename}-{IMAGE_NAME}.png', image)
+
+
+def are_dups(polygon1: Contour, polygon2: Contour) -> bool:
+    c1 = utils.centroid(polygon1)
+    c2 = utils.centroid(polygon2)
+    return utils.distance(c1, c2) <= 30
+
+
+def filter_dup_polygons(polygons: List[Contour]) -> List[Contour]:
+    clusters = []
+    copy = list(polygons)
+    while copy:
+        p1 = copy[0]
+        del copy[0]
+        cluster = [p1]
+        for i, p2 in zip(count(len(copy) - 1, step=-1), copy[::-1]):
+            if are_dups(p1, p2):
+                cluster.append(p2)
+                del copy[i]
+        clusters.append(cluster)
+
+    def key(polygon: Contour) -> bool:
+        return cv.contourArea(polygon), -utils.n_vertices(polygon)
+
+    return [min(cluster, key=key) for cluster in clusters]
 
 
 def detect_polygons(image: Image) -> List[Contour]:
@@ -46,8 +68,8 @@ def detect_polygons(image: Image) -> List[Contour]:
         maxValue=255,
         adaptiveMethod=cv.ADAPTIVE_THRESH_GAUSSIAN_C,
         thresholdType=cv.THRESH_BINARY,
-        blockSize=3,
-        C=1,
+        blockSize=11,
+        C=2,
     )
     save('binary', binary)
 
@@ -61,19 +83,39 @@ def detect_polygons(image: Image) -> List[Contour]:
         opening, mode=cv.RETR_LIST, method=cv.CHAIN_APPROX_SIMPLE
     )
 
-    polygons = [cv.approxPolyDP(contour, epsilon=3, closed=True)
-                for contour in contours
-                if 1000 <= cv.contourArea(contour) <= 50000]
-    polygons = [polygon for polygon in polygons if 5 <= len(polygon) <= 9]
+    copy = image.copy()
+
+    polygons = [
+        cv.approxPolyDP(
+            contour,
+            epsilon=0.01 * cv.arcLength(contour, closed=True),
+            closed=True
+        )
+        for contour in contours
+        if 1000 <= cv.contourArea(contour)
+    ]
+    polygons = [
+        polygon for polygon in polygons
+        if 5 <= utils.n_vertices(polygon) <= 9 and cv.isContourConvex(polygon)
+    ]
+    for polygon in polygons:
+        cv.circle(
+            copy,
+            utils.centroid(polygon),
+            radius=0,
+            color=(0, 0, 255),
+            thickness=2,
+        )
+    polygons = filter_dup_polygons(polygons)
     print(f'\tpolygons found: {len(polygons)}')
 
-    contours_image = image.copy()
     cv.drawContours(
-        contours_image, polygons,
+        copy, polygons,
         contourIdx=-1,  # Draw all
         color=(0, 0, 255)  # BGR
     )
-    save(f'contours', contours_image)
+
+    save(f'contours', copy)
 
     return polygons
 
@@ -84,7 +126,8 @@ def get_warped_tile(image: Image, contour: Contour) -> Optional[Image]:
          for i in range(len(contour))],
         key=sum
     )
-    print(f'\tcontour = {contour}')
+    if LOGLOG:
+        print(f'\tcontour = {contour}')
 
     bottom_right = contour[-1]
     top_left_top = min(contour[:2], key=lambda p: p[1])
@@ -95,11 +138,12 @@ def get_warped_tile(image: Image, contour: Contour) -> Optional[Image]:
     top_right = sorted(contour, key=lambda p: p[0] + max_dim - p[1])[-1]
     bottom_left = sorted(contour, key=lambda p: max_dim - p[0] + p[1])[-1]
 
-    print(f'\t\ttop_left_top = {top_left_top}')
-    print(f'\t\ttop_left_bottom = {top_left_bottom}')
-    print(f'\t\tbottom_right = {bottom_right}')
-    print(f'\t\ttop_right = {top_right}')
-    print(f'\t\tbottom_left = {bottom_left}')
+    if LOGLOG:
+        print(f'\t\ttop_left_top = {top_left_top}')
+        print(f'\t\ttop_left_bottom = {top_left_bottom}')
+        print(f'\t\tbottom_right = {bottom_right}')
+        print(f'\t\ttop_right = {top_right}')
+        print(f'\t\tbottom_left = {bottom_left}')
 
     warped = perspective.four_point_transform(
         image, np.array([top_left, top_right, bottom_right, bottom_left])
@@ -247,7 +291,7 @@ def process(image: Image) -> Image:
     return result
 
 
-def run(images_path: str):
+def run(images_path: str) -> None:
     out_path = 'out'
 
     for root, _, filenames in os.walk(images_path):
@@ -259,12 +303,16 @@ def run(images_path: str):
                 continue
 
             no_ext = utils.remove_file_extension(filename)
+
+            global IMAGE_NAME
+            IMAGE_NAME = no_ext
+
+            image = imutils.resize(image, width=1000)
             with utils.cd(out_path):
-                with cd(f'image-{no_ext}'):
-                    save('source', image)
-                    result = process(image)
-                    name = 'result' if LOG else no_ext
-                    cv.imwrite(name + '.png', result)
+                save('source', image)
+                result = process(image)
+                name = f'result-{IMAGE_NAME}' if LOG else no_ext
+                cv.imwrite(name + '.png', result)
 
     print('Done!')
 
@@ -280,17 +328,27 @@ def main() -> None:
         help='makes algorithm work verbose',
     )
     parser.add_argument(
+        '-vv', '--vverbose', action='store_true',
+        help='makes algorithm work more verbose then verbose',
+    )
+    parser.add_argument(
         'path', type=str,
         help='images path to run algorithm on',
         default='images'
     )
     args = parser.parse_args()
-    if args.verbose:
+    if args.verbose or args.vverbose:
         global LOG
         LOG = True
+    if args.vverbose:
+        global LOGLOG
+        LOGLOG = True
+
     run(args.path)
 
 
 if __name__ == '__main__':
     LOG = False
+    LOGLOG = False
+    IMAGE_NAME = None
     main()

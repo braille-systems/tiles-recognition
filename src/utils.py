@@ -2,14 +2,24 @@ import os
 from math import sqrt
 from pathlib import Path
 from contextlib import contextmanager
+import cv2 as cv
 
-from defs import Point, BoundingBox
+from defs import Point, BoundingBox, Contour
 
 
 def distance(p1: Point, p2: Point) -> float:
     x1, y1 = p1
     x2, y2 = p2
     return sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+
+
+def n_vertices(contour: Contour) -> int:
+    return len(contour)
+
+
+def centroid(contour: Contour) -> Point:
+    ms = cv.moments(contour)
+    return int(ms['m10'] / ms['m00']), int(ms['m01'] / ms['m00'])
 
 
 def bb_in_bb(checked: BoundingBox, reference: BoundingBox) -> bool:
