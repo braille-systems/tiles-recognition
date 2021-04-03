@@ -22,6 +22,12 @@ def centroid(contour: Contour) -> Point:
     return int(ms['m10'] / ms['m00']), int(ms['m01'] / ms['m00'])
 
 
+def dot_in_bb(p: Point, bb: BoundingBox) -> bool:
+    xx, yy = p
+    x, y, w, h = bb
+    return x <= xx <= x + w and y <= yy <= y + h
+
+
 def bb_in_bb(checked: BoundingBox, reference: BoundingBox) -> bool:
     x, y, w, h = checked
     xx = x + w

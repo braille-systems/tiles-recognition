@@ -47,7 +47,7 @@ def filter_dup_polygons(polygons: List[Contour]) -> List[Contour]:
                 del copy[i]
         clusters.append(cluster)
 
-    def key(polygon: Contour) -> bool:
+    def key(polygon):
         return cv.contourArea(polygon), -utils.n_vertices(polygon)
 
     return [min(cluster, key=key) for cluster in clusters]
@@ -149,75 +149,81 @@ def get_warped_tile(image: Image, contour: Contour) -> Optional[Image]:
         image, np.array([top_left, top_right, bottom_right, bottom_left])
     )
 
-    tile_width = 24  # millimeters
-    tile_height = 30  # millimeters
+    # Origin tile has 24mm width and 30mm height
     height = utils.distance(bottom_right, top_right)
     width = utils.distance(bottom_right, bottom_left)
-    if width != 0 and abs(height / width - tile_height / tile_width) < 0.6:
+    if width != 0 and 0.8 <= height / width <= 40 / 24:
         save(f'warped-{top_left}', warped)
         return warped
     return None
 
 
-def add_dot(dots: BrailleDots, bb: BoundingBox) -> BrailleDots:
-    size = 18
+def add_dot(dots: BrailleDots, tile: Image, bb: BoundingBox) -> BrailleDots:
+    x, y, w, h = bb
+    tile_height, tile_width, _ = tile.shape
 
+    d = 10
     # Dots sides (left and right)
-    s1 = 8
-    s2 = 24
-
+    s1 = 1 / 3
+    s2 = 2 / 3
     # Dots levels
-    l1 = 8
-    l2 = 25
-    l3 = 43
+    l1 = 1 / 4
+    l2 = 2 / 4
+    l3 = 3 / 4
 
     rects = [
-        ('d1', (s1, l1, size, size)),
-        ('d2', (s1, l2, size, size)),
-        ('d3', (s1, l3, size, size)),
-        ('d4', (s2, l1, size, size)),
-        ('d5', (s2, l2, size, size)),
-        ('d6', (s2, l3, size, size)),
+        (int(s * tile_width - d), int(l * tile_height - d), 2 * d, 2 * d)
+        for s, l in [
+            (s1, l1), (s1, l2), (s1, l3),
+            (s2, l1), (s2, l2), (s2, l3),
+        ]
     ]
-    for dot, rect in rects:
-        if utils.bb_in_bb(bb, rect):
-            return dots.copy(**{dot: True})
+    for i, rect in enumerate(rects, start=1):
+        if utils.dot_in_bb((x + w // 2, y + h // 2), rect):
+            return dots.copy(**{f'd{i}': True})
     return dots
 
 
-def detect_dots(tile: Image) -> BrailleDots:
-    resized = imutils.resize(tile, width=50)
+def detect_dots(tile: Image, i_tile: int) -> BrailleDots:
+    with cd('sources'):
+        resized = imutils.resize(tile, width=70)
+        save(f'source-{i_tile}', resized)
+
     gray = cv.cvtColor(resized, cv.COLOR_BGR2GRAY)
 
-    binary = cv.adaptiveThreshold(
-        gray,
-        maxValue=255,
-        adaptiveMethod=cv.ADAPTIVE_THRESH_GAUSSIAN_C,
-        thresholdType=cv.THRESH_BINARY,
-        blockSize=13,
-        C=20,
-    )
-    save('binary', binary)
+    with cd('binary'):
+        binary = cv.adaptiveThreshold(
+            gray,
+            maxValue=255,
+            adaptiveMethod=cv.ADAPTIVE_THRESH_GAUSSIAN_C,
+            thresholdType=cv.THRESH_BINARY,
+            blockSize=11,
+            C=2,
+        )
+        save(f'binary-{i_tile}', binary)
 
-    # Alternative approach is not to close and set area threshold
-    closing = cv.morphologyEx(
-        binary, op=cv.MORPH_CLOSE,
-        kernel=cv.getStructuringElement(cv.MORPH_ELLIPSE, (3, 3))
-    )
-    save('closing', closing)
+    with cd('closing'):
+        closing = cv.morphologyEx(
+            binary, op=cv.MORPH_CLOSE,
+            kernel=cv.getStructuringElement(cv.MORPH_ELLIPSE, (3, 3))
+        )
+        save(f'closing-{i_tile}', closing)
 
-    contours, _ = cv.findContours(
-        closing, mode=cv.RETR_LIST, method=cv.CHAIN_APPROX_SIMPLE
-    )
+    with cd('bbs'):
+        contours, _ = cv.findContours(
+            closing, mode=cv.RETR_LIST, method=cv.CHAIN_APPROX_SIMPLE
+        )
 
-    dots = BrailleDots()
-    copy = closing.copy()
-    for contour in contours:
-        bb = cv.boundingRect(contour)
-        dots = add_dot(dots, bb)
-        x, y, w, h = bb
-        cv.rectangle(copy, (x, y), (x + w, y + h), color=(100, 100, 100))
-    save('bbs', copy)
+        copy = closing.copy()
+        dots = BrailleDots()
+        for contour in contours:
+            bb = cv.boundingRect(contour)
+            x, y, w, h = bb
+            if w <= 12 or h <= 12 or 37 <= w or 37 <= h:
+                continue
+            dots = add_dot(dots, resized, bb)
+            cv.rectangle(copy, (x, y), (x + w - 2, y + h - 2), color=(100, 100, 100))
+        save(f'bbs-{i_tile}', copy)
 
     return dots
 
@@ -233,7 +239,7 @@ def process(image: Image) -> Image:
         cv.drawContours(
             result, polygons,
             contourIdx=-1,  # Draw all
-            color=(0, 0, 255)  # BGR
+            color=(0, 255, 0)  # BGR
         )
 
     with cd('warping'):
@@ -246,47 +252,40 @@ def process(image: Image) -> Image:
                 tiles.append(tile)
                 tile_bbs.append(bb)
 
-            x, y, _, h = bb
-            cv.putText(
-                result, 'X',
-                org=(x + 4, y + 10),
-                fontFace=cv.FONT_HERSHEY_COMPLEX,
-                fontScale=0.4,
-                color=(255, 100, 0),
-                thickness=1
-            )
+                x, y, _, h = bb
+                cv.putText(
+                    result, 'X',
+                    org=(x + 4, y + 10),
+                    fontFace=cv.FONT_HERSHEY_COMPLEX,
+                    fontScale=0.4,
+                    color=(255, 100, 0),
+                    thickness=1
+                )
 
     with cd('dotification'):
         for i, (tile, bb) in enumerate(zip(tiles, tile_bbs)):
-            with cd(f'tile-{i}'):
-                dots = detect_dots(tile)
-                c = dots_to_chars.get(dots)
-                save(f'{str(c)}-{dots}.png', tile)
+            dots = detect_dots(tile, i)
+            c = dots_to_chars.get(dots)
 
-            if c is not None:
-                x, y, w, h = bb
-                scale = 0.35
-                color = (255, 255, 100)
-                cv.putText(
-                    result, f'{i}: {c}',
-                    org=(x, y + h + 15),
-                    fontFace=cv.FONT_HERSHEY_COMPLEX,
-                    fontScale=scale,
-                    color=color,
-                    thickness=0
-                )
-                cv.putText(
-                    result, str(dots),
-                    org=(x, y + h + 30),
-                    fontFace=cv.FONT_HERSHEY_COMPLEX,
-                    fontScale=scale,
-                    color=color,
-                    thickness=0
-                )
-                cv.rectangle(
-                    result, (x, y), (x + w, y + h),
-                    color=(0, 255, 0), thickness=1
-                )
+            x, y, w, h = bb
+            scale = 0.35
+            color = (255, 255, 100)
+            cv.putText(
+                result, f'{i}: {str(c)}',
+                org=(x, y + h + 15),
+                fontFace=cv.FONT_HERSHEY_COMPLEX,
+                fontScale=scale,
+                color=color,
+                thickness=0
+            )
+            cv.putText(
+                result, str(dots),
+                org=(x, y + h + 30),
+                fontFace=cv.FONT_HERSHEY_COMPLEX,
+                fontScale=scale,
+                color=color,
+                thickness=0
+            )
 
     return result
 
