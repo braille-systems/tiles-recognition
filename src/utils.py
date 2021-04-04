@@ -2,15 +2,21 @@ import os
 from math import sqrt
 from pathlib import Path
 from contextlib import contextmanager
+from typing import Tuple
 import cv2 as cv
 
-from defs import Point, BoundingBox, Contour
+from defs import Image, Point, BoundingBox, Contour
 
 
 def distance(p1: Point, p2: Point) -> float:
     x1, y1 = p1
     x2, y2 = p2
     return sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+
+
+def image_wh(image: Image) -> Tuple[int, int]:
+    h, w, _ = image.shape
+    return w, h
 
 
 def n_vertices(contour: Contour) -> int:
