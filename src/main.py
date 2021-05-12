@@ -263,10 +263,13 @@ def process(image: Image) -> Image:
                     thickness=1
                 )
 
+    chars = []
+
     with cd('dotification'):
         for i, (tile, bb) in enumerate(tiles_bbs):
             dots = detect_dots(tile, i)
             c = dots_to_chars.get(dots)
+            chars.append(c if c else "?")
 
             x, y, w, h = bb
             scale = 0.35
@@ -288,7 +291,7 @@ def process(image: Image) -> Image:
                 thickness=0
             )
 
-    return result
+    return result, chars
 
 
 def run(images_path: str) -> None:
@@ -310,8 +313,10 @@ def run(images_path: str) -> None:
             image = imutils.resize(image, width=1000)
             with utils.cd(out_path):
                 save(image, 'source')
-                result = process(image)
+                result, chars = process(image)
                 save(result, 'result' if LOG else '', strict=True)
+                with open("result-text.txt", "w", encoding="utf8") as result_txt:
+                    result_txt.write("".join(chars) + "\n")
 
     print('Done!')
 
